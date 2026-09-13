@@ -9,7 +9,7 @@
 ## 安裝
 
 ```bash
-/plugin marketplace add /Users/yomiry/StudioWorkspace/gen-dev-workflow
+/plugin marketplace add /Users/yomiry/AiWorkspace/gen-dev-workflow
 /plugin install gen-dev-workflow
 ```
 
