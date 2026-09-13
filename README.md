@@ -9,11 +9,17 @@
 ## 安裝
 
 ```bash
-/plugin marketplace add /Users/yomiry/AiWorkspace/gen-dev-workflow
+/plugin marketplace add Yomiamy/gen-dev-workflow
 /plugin install gen-dev-workflow
 ```
 
-發布到 GitHub 後改用 repo URL。安裝後 hook 由 `hooks/hooks.json` 自動掛載，**不需要**手動寫進 `settings.json`。
+開發中要測本機修改，改用本機路徑：
+
+```bash
+/plugin marketplace add /Users/yomiry/AiWorkspace/gen-dev-workflow
+```
+
+安裝後 hook 由 `hooks/hooks.json` 自動掛載，**不需要**手動寫進 `settings.json`。
 
 ## 相依
 
