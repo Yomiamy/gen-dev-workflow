@@ -1,0 +1,9 @@
+{
+  "name": "gen-dev-workflow",
+  "description": "完整開發流程編排器：從需求發想到 PR 建立，自動驅動 planner / implementer / verifier / reviewer / publisher，並以狀態機棘輪強制暫停確認點。",
+  "version": "0.1.0",
+  "author": {
+    "name": "Yianday"
+  },
+  "hooks": "./hooks/hooks.json"
+}

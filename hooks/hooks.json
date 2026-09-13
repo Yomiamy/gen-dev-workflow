@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-stage-check.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__gemini-cli__ask-gemini",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-delegate-cwd.sh pre"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__gemini-cli__ask-gemini",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-delegate-cwd.sh post"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "gen-dev-workflow",
+  "description": "開發流程編排器與其配套 agent / skill。",
+  "owner": {
+    "name": "Yianday"
+  },
+  "plugins": [
+    {
+      "name": "gen-dev-workflow",
+      "description": "從需求到 PR 的完整開發流程編排，含狀態機棘輪與暫停確認點。",
+      "source": "./",
+      "category": "workflow"
+    }
+  ]
+}

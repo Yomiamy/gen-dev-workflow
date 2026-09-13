@@ -1,0 +1,5 @@
+.claude/workflow-state/
+.claude/worktrees/
+.DS_Store
+node_modules/
+*.tmp

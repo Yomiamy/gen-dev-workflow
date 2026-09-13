@@ -1,0 +1,9 @@
+{
+  "name": "gen-dev-workflow-sandbox",
+  "version": "0.0.0",
+  "private": true,
+  "description": "gen-dev-workflow 端到端冒煙測試用的假專案",
+  "scripts": {
+    "test": "node test.js"
+  }
+}
