@@ -2,253 +2,371 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "gen-dev-workflow 編排流程",
-    "locale": "zh-CN",
+    "title": "gen-dev-workflow 執行流程",
+    "locale": "en",
     "quality_profile": "showcase",
     "views": [
       {
-        "id": "main-line",
+        "id": "main",
         "label": "主線 STAGE 0a → 4",
         "focus": [
-          "s0a",
-          "s0b",
+          "s0",
           "s1",
           "s2",
-          "s2_verify",
           "s3",
-          "s4",
-          "pr_done"
-        ],
-        "note": "從需求到 PR 建立的主線，每個 stage 後方皆為暫停確認點。"
-      },
-      {
-        "id": "model-tier",
-        "label": "推論等級分配",
-        "focus": [
-          "s0a",
-          "s0b",
-          "s2",
-          "s2_verify",
-          "s3",
-          "s1",
           "s4"
         ],
-        "note": "最強推論給規劃與審查，輕量給純 IO，實作逐任務再分級。"
+        "note": "主對話作為總指揮，依序推進五個關卡，每關後暫停等使用者確認。"
       },
       {
-        "id": "loops",
-        "label": "退回與 retry 迴圈",
+        "id": "delegate",
+        "label": "委派與推論等級",
         "focus": [
-          "s2",
-          "s2_verify",
-          "s3"
+          "planner",
+          "brancher",
+          "implementer",
+          "verifier",
+          "reviewer",
+          "mcp"
         ],
-        "note": "STAGE 2 內部 retry 與 STAGE 3 退回 STAGE 2 是兩個不同層級的迴圈。"
+        "note": "兩層委派：主對話 Task 派發 sub-agent（帶 effort），brancher／implementer／publisher 再經 gemini-mcp-tool 委派實際工作。"
+      },
+      {
+        "id": "guard",
+        "label": "Hook 強制層",
+        "focus": [
+          "stage_check",
+          "delegate_cwd"
+        ],
+        "note": "guard-stage-check 攔 Task 派發；guard-delegate-cwd 攔 MCP 委派的 cwd 越界。"
+      },
+      {
+        "id": "manual",
+        "label": "獨立入口 STAGE 5／6",
+        "focus": [
+          "s5",
+          "s6"
+        ],
+        "note": "手動觸發，第一步必須先 advance 狀態否則 guard-stage-check 攔阻。"
       }
     ],
-    "output": "docs/diagrams/gen-dev-workflow.html",
-    "legend": {
-      "mode": "hidden"
-    }
+    "output": "docs/diagrams/gen-dev-workflow.html"
   },
   "lanes": [
     {
-      "id": "main",
-      "label": "STAGE 0a → 4 主線"
+      "id": "orch",
+      "label": "主對話（總指揮）"
     },
     {
-      "id": "loop",
-      "label": "退回路徑",
+      "id": "agent",
+      "label": "Sub-agent／委派後端"
+    },
+    {
+      "id": "guard",
+      "label": "委派後端與 Hook 強制層",
       "variant": "exception"
+    },
+    {
+      "id": "manual",
+      "label": "獨立入口 STAGE 5／6"
     }
   ],
   "phases": [
     {
-      "id": "p1",
-      "label": "規劃",
+      "id": "ph_plan",
+      "label": "規劃 0a／0b",
       "fromCol": 0,
-      "toCol": 1
+      "toCol": 0
     },
     {
-      "id": "p2",
-      "label": "建置與實作",
-      "fromCol": 2,
-      "toCol": 3,
+      "id": "ph_build",
+      "label": "建置與實作 1／2",
+      "fromCol": 1,
+      "toCol": 2,
       "variant": "emphasis"
     },
     {
-      "id": "p3",
-      "label": "審查與發布",
-      "fromCol": 4,
-      "toCol": 5
+      "id": "ph_ship",
+      "label": "審查與發布 3／4",
+      "fromCol": 3,
+      "toCol": 4
     }
   ],
   "mainPath": [
-    "s0a",
-    "s0b",
+    "s0",
     "s1",
     "s2",
-    "s2_verify",
-    "s3"
+    "s3",
+    "s4"
   ],
   "nodes": [
     {
-      "id": "s0a",
-      "lane": "main",
+      "id": "s0",
+      "lane": "orch",
       "col": 0,
-      "type": "backend",
-      "label": "STAGE 0a 功能規格",
-      "sublabel": "planner｜opus／xhigh",
-      "tag": "並行雙線收集",
-      "width": 140
-    },
-    {
-      "id": "s0b",
-      "lane": "main",
-      "col": 1,
-      "type": "backend",
-      "label": "STAGE 0b 實作計畫",
-      "sublabel": "planner｜opus／xhigh",
-      "tag": "標註逐任務複雜度",
-      "width": 140
+      "type": "frontend",
+      "label": "STAGE 0a→0b 規劃",
+      "sublabel": "⏸ 規格 + 計畫各一暫停",
+      "width": 148
     },
     {
       "id": "s1",
-      "lane": "main",
-      "col": 2,
-      "type": "security",
+      "lane": "orch",
+      "col": 1,
+      "type": "frontend",
       "label": "STAGE 1 Issue+WT",
-      "sublabel": "brancher｜sonnet／high",
-      "tag": "✦ gh issue、worktree",
-      "width": 140
+      "sublabel": "⏸ 暫停確認",
+      "width": 148
     },
     {
       "id": "s2",
-      "lane": "main",
-      "col": 3,
-      "type": "messagebus",
+      "lane": "orch",
+      "col": 2,
+      "type": "frontend",
       "label": "STAGE 2 實作",
-      "sublabel": "implementer｜sonnet／max",
-      "tag": "機械／整合／設計三級",
-      "width": 140
-    },
-    {
-      "id": "s2_verify",
-      "lane": "main",
-      "col": 4,
-      "type": "security",
-      "label": "STAGE 2 驗收",
-      "sublabel": "verifier｜opus／xhigh",
-      "tag": "spec → code quality",
-      "width": 140
+      "sublabel": "⏸ 每任務暫停",
+      "width": 148
     },
     {
       "id": "s3",
-      "lane": "main",
-      "col": 5,
-      "type": "backend",
+      "lane": "orch",
+      "col": 3,
+      "type": "frontend",
       "label": "STAGE 3 審查",
-      "sublabel": "reviewer｜opus／xhigh",
-      "tag": "不委派，親自判斷",
-      "width": 140
+      "sublabel": "⏸ 不通過退回 2",
+      "width": 148
     },
     {
       "id": "s4",
-      "lane": "loop",
+      "lane": "orch",
       "col": 4,
       "type": "frontend",
-      "label": "STAGE 4 發布",
-      "sublabel": "publisher｜sonnet／high",
-      "tag": "✦ Diff；PR 自己建",
-      "width": 140
+      "label": "STAGE 4 發布 → PR",
+      "sublabel": "⏸ 發布前暫停",
+      "width": 148,
+      "tag": "publisher sonnet／high"
     },
     {
-      "id": "pr_done",
-      "lane": "loop",
-      "col": 5,
+      "id": "planner",
+      "lane": "agent",
+      "col": 0,
+      "type": "backend",
+      "label": "planner",
+      "sublabel": "opus／xhigh",
+      "width": 148
+    },
+    {
+      "id": "brancher",
+      "lane": "agent",
+      "col": 1,
+      "type": "backend",
+      "label": "brancher",
+      "sublabel": "sonnet／high",
+      "width": 148
+    },
+    {
+      "id": "implementer",
+      "lane": "agent",
+      "col": 2,
+      "type": "backend",
+      "label": "implementer",
+      "sublabel": "sonnet／max",
+      "width": 148
+    },
+    {
+      "id": "verifier",
+      "lane": "agent",
+      "col": 3,
+      "type": "backend",
+      "label": "verifier 驗收",
+      "sublabel": "opus／xhigh 兩階段",
+      "width": 148
+    },
+    {
+      "id": "reviewer",
+      "lane": "agent",
+      "col": 4,
+      "type": "backend",
+      "label": "reviewer",
+      "sublabel": "opus／xhigh 不委派",
+      "width": 148
+    },
+    {
+      "id": "stage_check",
+      "lane": "guard",
+      "col": 0,
+      "type": "security",
+      "label": "guard-stage-check",
+      "sublabel": "PreToolUse(Agent)",
+      "width": 148
+    },
+    {
+      "id": "delegate_cwd",
+      "lane": "guard",
+      "col": 3,
+      "type": "security",
+      "label": "guard-delegate-cwd",
+      "sublabel": "pre 阻擋／post 告警",
+      "width": 148
+    },
+    {
+      "id": "s5",
+      "lane": "manual",
+      "col": 1,
+      "type": "messagebus",
+      "label": "STAGE 5 回 review",
+      "sublabel": "先 advance 5 --confirmed",
+      "width": 148
+    },
+    {
+      "id": "s6",
+      "lane": "manual",
+      "col": 3,
+      "type": "external",
+      "label": "STAGE 6 清 worktree",
+      "sublabel": "branch 一律保留",
+      "width": 148
+    },
+    {
+      "id": "mcp",
+      "lane": "guard",
+      "col": 2,
       "type": "cloud",
-      "label": "PR 建立完成",
-      "sublabel": "流程結束",
-      "tag": "worktree／branch 保留",
-      "width": 140
+      "label": "gemini-mcp-tool",
+      "sublabel": "ask-gemini 委派後端",
+      "width": 148
     }
   ],
   "edges": [
     {
-      "id": "e_0a_0b",
-      "from": "s0a",
-      "to": "s0b",
-      "label": "⏸ 規格",
-      "variant": "emphasis",
-      "role": "main"
-    },
-    {
-      "id": "e_0b_1",
-      "from": "s0b",
+      "id": "e_s0_s1",
+      "from": "s0",
       "to": "s1",
-      "label": "⏸ 計畫",
+      "label": "確認後推進",
       "variant": "emphasis",
       "role": "main"
     },
     {
-      "id": "e_1_2",
+      "id": "e_s1_s2",
       "from": "s1",
       "to": "s2",
-      "label": "⏸ 建立",
+      "label": "cd 進 worktree",
       "variant": "emphasis",
       "role": "main"
     },
     {
-      "id": "e_2_verify",
+      "id": "e_s2_s3",
       "from": "s2",
-      "to": "s2_verify",
-      "label": "委派驗收",
-      "variant": "emphasis",
-      "role": "main"
-    },
-    {
-      "id": "e_verify_3",
-      "from": "s2_verify",
       "to": "s3",
-      "label": "⏸ 任務",
+      "label": "全任務完成",
       "variant": "emphasis",
       "role": "main"
     },
     {
-      "id": "e_3_4",
+      "id": "e_s3_s4",
       "from": "s3",
       "to": "s4",
-      "label": "⏸ 通過",
+      "label": "通過",
       "variant": "emphasis",
       "role": "main"
     },
     {
-      "id": "e_3_2",
+      "id": "e_s0_planner",
+      "from": "s0",
+      "to": "planner",
+      "label": "派發 xhigh",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e_s1_brancher",
+      "from": "s1",
+      "to": "brancher",
+      "label": "派發 high",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e_s2_impl",
+      "from": "s2",
+      "to": "implementer",
+      "label": "派發 max",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e_s3_verifier",
+      "from": "s2",
+      "to": "verifier",
+      "label": "派發 xhigh 驗收",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e_s4_reviewer",
       "from": "s3",
-      "to": "s2",
-      "label": "不通過",
+      "to": "reviewer",
+      "label": "不委派 · 親自判斷",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e_guard_s1",
+      "from": "stage_check",
+      "to": "s1",
+      "label": "狀態合法才放行",
+      "variant": "security",
+      "role": "async"
+    },
+    {
+      "id": "e_guard_s3",
+      "from": "delegate_cwd",
+      "to": "mcp",
+      "label": "pre／post 攔 cwd 越界",
+      "variant": "security",
+      "role": "async"
+    },
+    {
+      "id": "e_s5_guard",
+      "from": "s5",
+      "to": "stage_check",
+      "label": "未進 5 即攔",
       "variant": "security",
       "role": "error"
     },
     {
-      "id": "e_4_done",
-      "from": "s4",
-      "to": "pr_done",
-      "label": "⏸ 發布",
-      "variant": "emphasis",
-      "role": "main"
+      "id": "e_s6_guard",
+      "from": "s6",
+      "to": "delegate_cwd",
+      "label": "PR 合併後",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e_brancher_mcp",
+      "from": "brancher",
+      "to": "mcp",
+      "label": "✦ MCP 委派",
+      "variant": "dashed",
+      "role": "async"
+    },
+    {
+      "id": "e_impl_mcp",
+      "from": "implementer",
+      "to": "mcp",
+      "label": "✦ MCP 委派",
+      "variant": "dashed",
+      "role": "async"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "推論等級 · effort · 委派",
+      "title": "兩層委派 · effort · 不委派",
       "items": [
-        "最強推論 opus／xhigh：planner、reviewer、verifier",
-        "標準 sonnet／max：implementer｜輕量 sonnet／high：brancher、responder、publisher",
-        "effort 已從 frontmatter 移除，派發時必須顯式帶入否則落回 session 預設",
-        "不委派：STAGE 3 審查報告、gh pr create／git push、commit message",
-        "STAGE 5 回覆 review／STAGE 6 清理 worktree 為獨立入口，需先推進狀態否則 hook 攔下"
+        "Task 派發 sub-agent（effort 派發時顯式帶入，a6fcd29 後 frontmatter 已無 effort）",
+        "MCP 委派 gemini-mcp-tool：僅 brancher、implementer、publisher；cwd 須寫死在 prompt",
+        "不委派：planner、verifier、reviewer，及 gh pr create／git push、commit message"
       ]
     }
   ]
