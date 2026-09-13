@@ -1,0 +1,255 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "gen-dev-workflow 編排流程",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-line",
+        "label": "主線 STAGE 0a → 4",
+        "focus": [
+          "s0a",
+          "s0b",
+          "s1",
+          "s2",
+          "s2_verify",
+          "s3",
+          "s4",
+          "pr_done"
+        ],
+        "note": "從需求到 PR 建立的主線，每個 stage 後方皆為暫停確認點。"
+      },
+      {
+        "id": "model-tier",
+        "label": "推論等級分配",
+        "focus": [
+          "s0a",
+          "s0b",
+          "s2",
+          "s2_verify",
+          "s3",
+          "s1",
+          "s4"
+        ],
+        "note": "最強推論給規劃與審查，輕量給純 IO，實作逐任務再分級。"
+      },
+      {
+        "id": "loops",
+        "label": "退回與 retry 迴圈",
+        "focus": [
+          "s2",
+          "s2_verify",
+          "s3"
+        ],
+        "note": "STAGE 2 內部 retry 與 STAGE 3 退回 STAGE 2 是兩個不同層級的迴圈。"
+      }
+    ],
+    "output": "docs/diagrams/gen-dev-workflow.html",
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "STAGE 0a → 4 主線"
+    },
+    {
+      "id": "loop",
+      "label": "退回路徑",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "label": "規劃",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "p2",
+      "label": "建置與實作",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p3",
+      "label": "審查與發布",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "s0a",
+    "s0b",
+    "s1",
+    "s2",
+    "s2_verify",
+    "s3"
+  ],
+  "nodes": [
+    {
+      "id": "s0a",
+      "lane": "main",
+      "col": 0,
+      "type": "backend",
+      "label": "STAGE 0a 功能規格",
+      "sublabel": "planner｜opus／xhigh",
+      "tag": "並行雙線收集",
+      "width": 140
+    },
+    {
+      "id": "s0b",
+      "lane": "main",
+      "col": 1,
+      "type": "backend",
+      "label": "STAGE 0b 實作計畫",
+      "sublabel": "planner｜opus／xhigh",
+      "tag": "標註逐任務複雜度",
+      "width": 140
+    },
+    {
+      "id": "s1",
+      "lane": "main",
+      "col": 2,
+      "type": "security",
+      "label": "STAGE 1 Issue+WT",
+      "sublabel": "brancher｜sonnet／high",
+      "tag": "✦ gh issue、worktree",
+      "width": 140
+    },
+    {
+      "id": "s2",
+      "lane": "main",
+      "col": 3,
+      "type": "messagebus",
+      "label": "STAGE 2 實作",
+      "sublabel": "implementer｜sonnet／max",
+      "tag": "機械／整合／設計三級",
+      "width": 140
+    },
+    {
+      "id": "s2_verify",
+      "lane": "main",
+      "col": 4,
+      "type": "security",
+      "label": "STAGE 2 驗收",
+      "sublabel": "verifier｜opus／xhigh",
+      "tag": "spec → code quality",
+      "width": 140
+    },
+    {
+      "id": "s3",
+      "lane": "main",
+      "col": 5,
+      "type": "backend",
+      "label": "STAGE 3 審查",
+      "sublabel": "reviewer｜opus／xhigh",
+      "tag": "不委派，親自判斷",
+      "width": 140
+    },
+    {
+      "id": "s4",
+      "lane": "loop",
+      "col": 4,
+      "type": "frontend",
+      "label": "STAGE 4 發布",
+      "sublabel": "publisher｜sonnet／high",
+      "tag": "✦ Diff；PR 自己建",
+      "width": 140
+    },
+    {
+      "id": "pr_done",
+      "lane": "loop",
+      "col": 5,
+      "type": "cloud",
+      "label": "PR 建立完成",
+      "sublabel": "流程結束",
+      "tag": "worktree／branch 保留",
+      "width": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_0a_0b",
+      "from": "s0a",
+      "to": "s0b",
+      "label": "⏸ 規格",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_0b_1",
+      "from": "s0b",
+      "to": "s1",
+      "label": "⏸ 計畫",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_1_2",
+      "from": "s1",
+      "to": "s2",
+      "label": "⏸ 建立",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_2_verify",
+      "from": "s2",
+      "to": "s2_verify",
+      "label": "委派驗收",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_verify_3",
+      "from": "s2_verify",
+      "to": "s3",
+      "label": "⏸ 任務",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_3_4",
+      "from": "s3",
+      "to": "s4",
+      "label": "⏸ 通過",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_3_2",
+      "from": "s3",
+      "to": "s2",
+      "label": "不通過",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "e_4_done",
+      "from": "s4",
+      "to": "pr_done",
+      "label": "⏸ 發布",
+      "variant": "emphasis",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "推論等級 · effort · 委派",
+      "items": [
+        "最強推論 opus／xhigh：planner、reviewer、verifier",
+        "標準 sonnet／max：implementer｜輕量 sonnet／high：brancher、responder、publisher",
+        "effort 已從 frontmatter 移除，派發時必須顯式帶入否則落回 session 預設",
+        "不委派：STAGE 3 審查報告、gh pr create／git push、commit message",
+        "STAGE 5 回覆 review／STAGE 6 清理 worktree 為獨立入口，需先推進狀態否則 hook 攔下"
+      ]
+    }
+  ]
+}
