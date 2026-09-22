@@ -35,11 +35,11 @@ MCP 呼叫**無法指定 cwd**，派發 prompt 第一段必須寫死絕對路徑
 一律停止並回報原因，等待指示，不要自行動手。
 ```
 
-> ⚠️ **已知限制：MCP 呼叫無法逐次帶 `--print-timeout`**——逾時只能靠 server 層環境變數統一設定，單次派發無法調整（細節見 gen-dev-workflow plugin 的 `references/mcp-delegation-discipline.md`）。
+> ⚠️ **已知限制：MCP 呼叫無法逐次帶 `--print-timeout`**——逾時只能靠 server 層環境變數統一設定，單次派發無法調整（細節見 `.claude/skills/gen-dev-workflow/references/mcp-delegation-discipline.md`）。
 >
 > 🔴 **`gh issue create` 是對外動作**：委派前必須已通過 STAGE 1 的暫停點（使用者確認過 Issue 標題與內容）。未確認不得派發。
 >
-> ⚠️ **重試前先對帳，避免重複建立**：一次派發內含 `gh issue create` 與 worktree/branch 建立兩個有副作用的步驟，中途失敗重試前，先用**本次派發已取得的 Issue URL** 跑 `gh issue view` 確認狀態，並用 `git worktree list --porcelain` 與 `git branch --list` 比對目標 branch/path。只有能證明是本次嘗試留下的資源才復用（Issue URL 相符、branch 與 worktree path 皆為本次目標值）；無法證明就停止並回報，不重建也不覆蓋——這與 `ticket-id-dev-prep`「目標 branch 或 worktree 路徑已存在則停止回報」是同一條規則。
+> ⚠️ **重試前先對帳，避免重複建立**：一次派發內含 `gh issue create` 與 worktree/branch 建立兩個有副作用的步驟，中途失敗重試前，先用**本次派發已取得的 Issue URL** 跑 `gh issue view` 確認狀態，並用 `git worktree list --porcelain` 與 `git branch --list` 比對目標 branch/path。只有能證明是本次嘗試留下的資源才復用（Issue URL 相符、branch 與 worktree path 皆為本次目標值）；無法證明就停止並回報，不重建也不覆蓋——這與 `gen-dev-worktree`「目標 branch 或 worktree 路徑已存在則停止回報」是同一條規則。
 
 ## 職責
 - 解析 plan 文件中的目標與範圍。

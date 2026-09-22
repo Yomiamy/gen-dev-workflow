@@ -5,8 +5,10 @@
 使用者：幫我做 <需求描述>
 
 你：好，開始執行開發流程。（effort 依「推論等級表」明確帶入，`xhigh` 的 400 風險註記見 `references/delegation-and-parallel.md`）
+    # STAGE 0·grill：需求盤問（planner 之前的必經步驟）
+    呼叫 gen-grill skill → Q1–Q4 齊備（或符合短路條件）且 Q5 已跑完 → 產出 brief
     # STAGE 0a：功能規格（What & Why）
-    Task("planner", "為 <需求描述> 撰寫功能規格", effort: "xhigh")
+    Task("planner", "依 grill brief 為 <需求描述> 撰寫功能規格", effort: "xhigh")
     → 產出 docs/features/YYYY-MM-DD-<feature>.md → 展示 → ⏸ 暫停確認
     # STAGE 0b：實作計畫（How）——兩階段不可合併，0a 未確認不得進 0b
     → Task("planner", "依已確認的規格產出實作計畫", effort: "xhigh")
@@ -28,7 +30,7 @@
 使用者：開發 issue #54
 
 你：好，直接進 STAGE 1。（effort 依「推論等級表」明確帶入）
-    Task("brancher", "解析 issue #54 內容為實作 brief，依 ticket-id-dev-prep 規則
+    Task("brancher", "解析 issue #54 內容為實作 brief，依 gen-dev-worktree 規則
                        決定 prefix/slug，先只產出名稱草稿不要建立", effort: "high")
     → [等 brancher 完成] → 展示解析後的 brief + branch/worktree 名稱 → ⏸ 暫停確認
     → 確認後才建立 worktree + branch → cd 進新 worktree

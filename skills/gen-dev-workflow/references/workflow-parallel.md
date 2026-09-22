@@ -39,7 +39,7 @@ const results = await pipeline(
 // 回到主對話：聚合 results → 寫 state（completed_tasks）→ 在「每批完成」暫停點展示 → 問使用者確認下一批
 ```
 
-> ⚠️ **`agentType` 不可省略**：省略時 agent 不會套用該角色 `agents/*.md`（plugin 內）的 frontmatter（implementer 的 `model: sonnet`、verifier 的 `model: opus`），等於放棄角色綁定。`opts.model` 只覆寫 model，不會補上 agentType。
+> ⚠️ **`agentType` 不可省略**：省略時 agent 不會套用該角色 `.claude/agents/*.md` 的 frontmatter（implementer 的 `model: sonnet`、verifier 的 `model: opus`），等於放棄角色綁定。`opts.model` 只覆寫 model，不會補上 agentType。
 >
 > ⚠️ **「快/便宜」是委派後端的內部等級，不是 Claude model 名**——`task.model` 帶的必須是 `sonnet`/`opus` 這類真實別名。計畫標「機械性」時對應 `model: 'sonnet'`，不要把「快/便宜」四個字直接傳進 `opts.model`。
 >

@@ -39,18 +39,7 @@ state 檔的**所有**建立、讀取、更新一律透過本 skill 的 `scripts
 | 中止批次 | `wf-state.sh batch-abort [<檔>]`（只刪批次檔，branch/PR/worktree 保留） |
 | 續接時讀取 | `wf-state.sh get <檔>`（讀取即校驗，腐壞檔立即失敗而非靜默續接） |
 
-> **腳本路徑（plugin 安裝）：** `${CLAUDE_PLUGIN_ROOT}/skills/gen-dev-workflow/scripts/wf-state.sh`。
->
-> 本 skill 以 plugin 形式安裝，腳本**不在被開發的專案裡**，而在 plugin 安裝目錄。因此 `cd` 進 worktree 後路徑**不變**——始終呼叫 plugin 內的同一份腳本。
->
-> `${CLAUDE_PLUGIN_ROOT}` 在 hook 中由 Claude Code 注入；於一般 Bash 呼叫中若該變數不可用，先解析一次再使用：
->
-> ```bash
-> WF="$(ls -d ~/.claude/plugins/*/gen-dev-workflow*/skills/gen-dev-workflow/scripts/wf-state.sh 2>/dev/null | head -1)"
-> "$WF" get <檔>
-> ```
->
-> **狀態檔位置不受影響**：`wf-state.sh` 一律在**當前工作目錄**下的 `.claude/workflow-state/` 讀寫（可用 `WF_STATE_DIR` 覆寫）。腳本在 plugin，狀態在專案——兩者刻意分離。
+> 腳本路徑：`.claude/skills/gen-dev-workflow/scripts/wf-state.sh`（相對當前工作目錄的 repo root；`cd` 進 worktree 後用 worktree 內的同路徑 checkout）。
 
 ## 狀態檔：每個 workflow 一個檔，用 branch 命名
 
