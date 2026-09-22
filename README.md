@@ -35,7 +35,7 @@ Seven stages with ⏸ denoting pause points (`strict` mode pauses at all gates b
 |:--|:--|:--|:--|:--|:--|
 | **0a** Feature Spec | Dual parallel tracks: Project context gathering / Similar feature code investigation, synthesized into `docs/features/` | planner | `opus` | `xhigh` | ❌ No delegation |
 | **0b** Implementation Plan | Data structures, file changes, task breakdown with per-task complexity tags → `docs/plans/` | planner | `opus` | `xhigh` | ❌ No delegation |
-| **1** Issue + Worktree | Issue body with 5 standard sections (zh-tw); create worktree + branch following `ticket-id-dev-prep` rules | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`, `git worktree add` |
+| **1** Issue + Worktree | Issue body with 5 standard sections (zh-tw); create worktree + branch following `gen-dev-worktree` rules | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`, `git worktree add` |
 | **2** Implementation | ≥2 independent tasks with non-overlapping write paths → parallel; otherwise sequential | implementer | `sonnet` | `max` | ✦ Code + Tests + Commits |
 | **2** Acceptance | Two phases: spec compliance → code quality | verifier | `opus` | `xhigh` | ❌ In-session verification |
 | **3** Review | Root cause analysis; never allow the authoring model to review its own code | reviewer | `opus` | `xhigh` | ❌ No delegation |
@@ -95,7 +95,7 @@ Detailed stage rules are located in `skills/gen-dev-workflow/references/`: `stat
 ```
 skills/gen-dev-workflow/     Core orchestrator: SKILL.md + 8 reference docs + wf-state.sh
 skills/ (remaining 15)       Supporting skills: gen-pr / gen-commit / gen-gh-issue /
-                             ticket-id-dev-prep / worktree-close-cleanup, etc.
+                             gen-dev-worktree / worktree-close-cleanup, etc.
 agents/                      7 specialized roles: planner / implementer / verifier /
                              reviewer / publisher / brancher / responder
 hooks/                       stage-check (ratchet enforcement) + delegate-cwd (delegation boundary sandbox)

@@ -35,7 +35,7 @@
 |:--|:--|:--|:--|:--|:--|
 | **0a** 功能規格 | 並行雙線：專案 context 收集 ／ 相似功能代碼調查，收斂後寫 `docs/features/` | planner | `opus` | `xhigh` | ❌ 不委派 |
 | **0b** 實作計畫 | 資料結構、檔案異動、任務拆分，逐任務標註複雜度 → `docs/plans/` | planner | `opus` | `xhigh` | ❌ 不委派 |
-| **1** Issue + Worktree | Issue body 五區段 zh-tw；依 `ticket-id-dev-prep` 規則建 worktree + branch | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`、`git worktree add` |
+| **1** Issue + Worktree | Issue body 五區段 zh-tw；依 `gen-dev-worktree` 規則建 worktree + branch | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`、`git worktree add` |
 | **2** 實作 | ≥2 獨立任務且寫入路徑不重疊 → 並行；否則序列 | implementer | `sonnet` | `max` | ✦ 代碼 + 測試 + commit |
 | **2** 驗收 | 兩階段：spec compliance → code quality | verifier | `opus` | `xhigh` | ❌ 親自驗收 |
 | **3** 審查 | 根因判斷，不讓產出代碼的同源 model 自審 | reviewer | `opus` | `xhigh` | ❌ 不委派 |
@@ -88,7 +88,7 @@ implementer 不對所有任務用同一 model，讀完計畫後逐任務判定�
 ```
 skills/gen-dev-workflow/     主體：SKILL.md + 8 份 references + wf-state.sh
 skills/（其餘 15 個）         配套：gen-pr / gen-commit / gen-gh-issue /
-                             ticket-id-dev-prep / worktree-close-cleanup 等
+                             gen-dev-worktree / worktree-close-cleanup 等
 agents/                      7 個角色：planner / implementer / verifier /
                              reviewer / publisher / brancher / responder
 hooks/                       stage-check（棘輪強制）＋ delegate-cwd（委派越界防護）
