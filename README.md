@@ -27,15 +27,16 @@ Upon installation, hooks are automatically mounted via `hooks/hooks.json`—manu
 
 ## Orchestration Workflow
 
-📊 **[Interactive Workflow Diagram](docs/diagrams/gen-dev-workflow.html)** (Open in browser; includes model, effort, delegation badges, three guided view perspectives, search, and export)
+📊 **[Interactive Workflow Diagram](docs/diagrams/2026-09-22-gen-dev-workflow-architecture.html)** (Open in browser; includes model, effort, delegation badges, three guided view perspectives, search, and export)
+📐 **[Orchestration Diagram](docs/diagrams/2026-09-21-gen-dev-workflow-orchestration.html)** — the two PreToolUse hook guards and both delegation layers
 
 Seven stages with ⏸ denoting pause points (`strict` mode pauses at all gates by default). STAGE 0a→4 constitutes the primary pipeline; STAGE 5 and 6 are standalone entry points triggered manually.
-
 STAGE 0·grill sits after `init` and before the planner dispatch. It is a conversational exchange rather than a pause point, so the state machine's transition table stays `0a→0b→1→2→3→4`.
+
 | Stage | Tasks & Responsibilities | Agent / Skill | Model | Effort | Delegation |
 |:--|:--|:--|:--|:--|:--|
-| **0a** Feature Spec | Dual parallel tracks: Project context gathering / Similar feature code investigation, synthesized into `docs/features/` | planner | `opus` | `xhigh` | ❌ No delegation |
 | **0**·grill Requirement grilling | Gate on five criteria (problem definition / trigger scenario / success criteria / scope boundary / existing-coverage check); Q5 always runs even when short-circuited | gen-grill skill | `opus` | `xhigh` | ❌ no delegation |
+| **0a** Feature Spec | Dual parallel tracks: Project context gathering / Similar feature code investigation, synthesized into `docs/features/` | planner | `opus` | `xhigh` | ❌ No delegation |
 | **0b** Implementation Plan | Data structures, file changes, task breakdown with per-task complexity tags → `docs/plans/` | planner | `opus` | `xhigh` | ❌ No delegation |
 | **1** Issue + Worktree | Issue body with 5 standard sections (zh-tw); create worktree + branch following `gen-dev-worktree` rules | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`, `git worktree add` |
 | **2** Implementation | ≥2 independent tasks with non-overlapping write paths → parallel; otherwise sequential | implementer | `sonnet` | `max` | ✦ Code + Tests + Commits |
