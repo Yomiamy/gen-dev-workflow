@@ -31,9 +31,11 @@
 
 七個 stage，⏸ 是暫停點（`strict` 預設全停）。STAGE 0a→4 是主線，5／6 是獨立入口，由你手動觸發。
 
+STAGE 0·grill 位於 `init` 之後、planner 派發之前，本身是對話往返、不是暫停點，狀態機轉移表維持 `0a→0b→1→2→3→4`。
 | Stage | 任務內容 | Agent／Skill | Model | Effort | 委派 |
 |:--|:--|:--|:--|:--|:--|
 | **0a** 功能規格 | 並行雙線：專案 context 收集 ／ 相似功能代碼調查，收斂後寫 `docs/features/` | planner | `opus` | `xhigh` | ❌ 不委派 |
+| **0**·grill 需求盤問 | 五項判準（問題定義／觸發場景／成功標準／範圍邊界／既有覆蓋實查）齊備才放行；短路時 Q5 仍必跑 | gen-grill skill | `opus` | `xhigh` | ❌ 不委派 |
 | **0b** 實作計畫 | 資料結構、檔案異動、任務拆分，逐任務標註複雜度 → `docs/plans/` | planner | `opus` | `xhigh` | ❌ 不委派 |
 | **1** Issue + Worktree | Issue body 五區段 zh-tw；依 `gen-dev-worktree` 規則建 worktree + branch | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`、`git worktree add` |
 | **2** 實作 | ≥2 獨立任務且寫入路徑不重疊 → 並行；否則序列 | implementer | `sonnet` | `max` | ✦ 代碼 + 測試 + commit |
