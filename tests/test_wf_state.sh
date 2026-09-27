@@ -177,6 +177,23 @@ echo "== batch-init 拒絕無效 pause_level =="
 new_env
 no_run "無效 pause_level 應被拒" "$WF" batch-init "X" --pause-level bogus
 
+echo "== promote 推進 stage 至 1 並拒絕非合規狀態 =="
+new_env
+p="$("$WF" init --mode sequence)"
+field_is "$p" '.stage' "0a" "init sequence 預設 stage 0a"
+out="$("$WF" promote "$p" --branch "feat/test-br" --dest "$WF_STATE_DIR")"
+field_is "$out" '.stage' "1" "promote 自動將 stage 推進為 1"
+field_is "$out" '.branch' "feat/test-br" "promote 寫入 branch 欄位"
+[ ! -f "$p" ] && ok || fail "promote 後原 pending 檔應被刪除"
+ok_run "promote 後可直接執行 stage-done 1" "$WF" stage-done "$out" 1
+
+# 測試拒絕非合規模式
+jp="$("$WF" init --mode jump --stage 5)"
+no_run "promote 應拒絕 jump 模式" "$WF" promote "$jp" --branch "feat/jump-br" --dest "$WF_STATE_DIR"
+[ -f "$jp" ] && ok || fail "promote 失敗時原 pending 檔應完整保留"
+rm -f "$jp"
+
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "OK — $PASS 項斷言全數通過"
