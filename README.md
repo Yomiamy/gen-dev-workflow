@@ -37,7 +37,7 @@ STAGE 0·grill sits after `init` and before the planner dispatch. It is a conver
 |:--|:--|:--|:--|:--|:--|
 | **0**·grill Requirement grilling | Gate on five criteria (problem definition / trigger scenario / success criteria / scope boundary / existing-coverage check); Q5 always runs even when short-circuited | gen-grill skill | `opus` | `xhigh` | ❌ no delegation |
 | **0a** Feature Spec | Dual parallel tracks: Project context gathering / Similar feature code investigation, synthesized into `docs/features/` | planner | `opus` | `xhigh` | ❌ No delegation |
-| **0b** Implementation Plan | Data structures, file changes, task breakdown with per-task complexity tags → `docs/plans/` | planner | `opus` | `xhigh` | ❌ No delegation |
+| **0b** Implementation Plan & Adversarial Review | Data structures, file changes, task breakdown → `docs/plans/`; `plan-verifier` independent Opus review (binary READY/REVISE contract) | planner + plan-verifier | `opus` | `xhigh` | ❌ No delegation |
 | **1** Issue + Worktree | Issue body with 5 standard sections (zh-tw); create worktree + branch following `gen-dev-worktree` rules | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`, `git worktree add` |
 | **2** Implementation | ≥2 independent tasks with non-overlapping write paths → parallel; otherwise sequential | implementer | `sonnet` | `max` | ✦ Code + Tests + Commits |
 | **2** Acceptance | Two phases: spec compliance → code quality | verifier | `opus` | `xhigh` | ❌ In-session verification |
@@ -99,8 +99,9 @@ Detailed stage rules are located in `skills/gen-dev-workflow/references/`: `stat
 skills/gen-dev-workflow/     Core orchestrator: SKILL.md + 8 reference docs + wf-state.sh
 skills/ (remaining 15)       Supporting skills: gen-pr / gen-commit / gen-gh-issue /
                              gen-dev-worktree / worktree-close-cleanup, etc.
-agents/                      7 specialized roles: planner / implementer / verifier /
-                             reviewer / publisher / brancher / responder
+agents/                      8 specialized roles: planner / implementer / verifier /
+                             reviewer / publisher / brancher / responder /
+                             plan-verifier
 hooks/                       stage-check (ratchet enforcement) + delegate-cwd (delegation boundary sandbox)
 tests/                       Tier 1 state machine + Tier 2 hook pure functions
 examples/sandbox/            Tier 3 mock project for end-to-end smoke testing

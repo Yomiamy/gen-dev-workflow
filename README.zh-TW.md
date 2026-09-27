@@ -37,7 +37,7 @@ STAGE 0·grill 位於 `init` 之後、planner 派發之前，本身是對話往�
 |:--|:--|:--|:--|:--|:--|
 | **0**·grill 需求盤問 | 五項判準（問題定義／觸發場景／成功標準／範圍邊界／既有覆蓋實查）齊備才放行；短路時 Q5 仍必跑 | gen-grill skill | `opus` | `xhigh` | ❌ 不委派 |
 | **0a** 功能規格 | 並行雙線：專案 context 收集 ／ 相似功能代碼調查，收斂後寫 `docs/features/` | planner | `opus` | `xhigh` | ❌ 不委派 |
-| **0b** 實作計畫 | 資料結構、檔案異動、任務拆分，逐任務標註複雜度 → `docs/plans/` | planner | `opus` | `xhigh` | ❌ 不委派 |
+| **0b** 實作計畫與初審 | 資料結構、檔案異動、任務拆分 → `docs/plans/`；`plan-verifier` 獨立 Opus 對抗初審（READY/REVISE 二值契約） | planner + plan-verifier | `opus` | `xhigh` | ❌ 不委派 |
 | **1** Issue + Worktree | Issue body 五區段 zh-tw；依 `gen-dev-worktree` 規則建 worktree + branch | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`、`git worktree add` |
 | **2** 實作 | ≥2 獨立任務且寫入路徑不重疊 → 並行；否則序列 | implementer | `sonnet` | `max` | ✦ 代碼 + 測試 + commit |
 | **2** 驗收 | 兩階段：spec compliance → code quality | verifier | `opus` | `xhigh` | ❌ 親自驗收 |
@@ -92,8 +92,9 @@ implementer 不對所有任務用同一 model，讀完計畫後逐任務判定�
 skills/gen-dev-workflow/     主體：SKILL.md + 8 份 references + wf-state.sh
 skills/（其餘 15 個）         配套：gen-pr / gen-commit / gen-gh-issue /
                              gen-dev-worktree / worktree-close-cleanup 等
-agents/                      7 個角色：planner / implementer / verifier /
-                             reviewer / publisher / brancher / responder
+agents/                      8 個角色：planner / implementer / verifier /
+                             reviewer / publisher / brancher / responder /
+                             plan-verifier
 hooks/                       stage-check（棘輪強制）＋ delegate-cwd（委派越界防護）
 tests/                       層 1 狀態機 + 層 2 hook 純函式
 examples/sandbox/            層 3 端到端冒煙測試用的假專案
