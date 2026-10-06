@@ -56,7 +56,7 @@ The implementer does not use the same model tier for all tasks; after reading th
 | Touches multiple files, requires integration & coordination | Standard `sonnet` / `max` | Cross-service integration, modifying existing workflows |
 | Requires architectural design judgment or deep codebase understanding | Strongest reasoning `opus` / `xhigh` | Refactoring state machines, introducing cross-cutting layers |
 
-> ⚠️ **Effort must be explicitly passed during dispatch.** Commit `a6fcd29` removed `effort:` from individual agent frontmatters; subagents inherit the main session's current effort by default. Omitting the `effort` parameter means the stage-differentiated efforts in the table above **will NOT take effect**, falling back entirely to the session default.
+> ⚠️ **Effort is bound in agent frontmatter and overrides the main session's effort.** planner, plan-verifier, reviewer, and verifier are bound to `xhigh`, implementer to `max`, and brancher, publisher, and responder to `high`, so no `effort` parameter is needed at dispatch.
 
 ### Hard Rules: When NOT to Delegate
 

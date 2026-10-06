@@ -56,7 +56,7 @@ implementer 不對所有任務用同一 model，讀完計畫後逐任務判定�
 | 觸及多檔、需整合協調 | 標準 `sonnet`／`max` | 跨 service 串接、改既有流程 |
 | 需設計判斷或廣泛 codebase 理解 | 最強推論 `opus`／`xhigh` | 重構狀態機、新增跨層架構 |
 
-> ⚠️ **effort 必須在派發時顯式帶入。** commit `a6fcd29` 已把 `effort:` 從各 agent frontmatter 移除，子 agent 預設繼承主對話當前 effort。不帶 `effort` 參數＝上表的 stage 間差異化**不會發生**，全部落回 session 預設值。
+> ⚠️ **effort 由 agent frontmatter 綁定，並覆蓋主對話 session 的 effort。** planner、plan-verifier、reviewer、verifier 綁 `xhigh`，implementer 綁 `max`，brancher、publisher、responder 綁 `high`，派發時不需另帶 `effort` 參數。
 
 ### 不委派的硬規則
 
