@@ -19,7 +19,8 @@
 #   "PreToolUse": [
 #     { "matcher": "mcp__gemini-cli__ask-gemini",
 #       "hooks": [{ "type": "command",
-#         "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-delegate-cwd.sh pre" }] }
+#         "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-delegate-cwd.sh pre",
+#         "onFailure": "block" }] }
 #   ],
 #   "PostToolUse": [
 #     { "matcher": "mcp__gemini-cli__ask-gemini",

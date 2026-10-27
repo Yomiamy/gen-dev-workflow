@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-stage-check.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-stage-check.sh",
+            "onFailure": "block"
           }
         ]
       },
@@ -15,7 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-delegate-cwd.sh pre"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-delegate-cwd.sh pre",
+            "onFailure": "block"
           }
         ]
       }
