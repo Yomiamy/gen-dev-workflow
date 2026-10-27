@@ -40,11 +40,11 @@ STAGE 0·grill sits after `init` and before the planner dispatch. It is a conver
 | **0b** Implementation Plan & Adversarial Review | Data structures, file changes, task breakdown → `docs/plans/`; `plan-verifier` independent Opus review (binary READY/REVISE contract) | planner + plan-verifier | `opus` | `xhigh` | ❌ No delegation |
 | **1** Issue + Worktree | Issue body with 5 standard sections (zh-tw); create worktree + branch following `gen-dev-worktree` rules | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`, `git worktree add` |
 | **2** Implementation | ≥2 independent tasks with non-overlapping write paths → parallel; otherwise sequential | implementer | `sonnet` | `max` | ✦ Code + Tests + Commits |
-| **2** Acceptance | Two phases: spec compliance → code quality | verifier | `opus` | `xhigh` | ❌ In-session verification |
+| **2** Acceptance | Two phases: spec compliance → code quality (Hierarchical: PASS / FAIL: CODE / FAIL: INFRA) | verifier | `opus` | `xhigh` | ❌ In-session verification |
 | **3** Review | Root cause analysis; never allow the authoring model to review its own code | reviewer | `opus` | `xhigh` | ❌ No delegation |
 | **4** Publish | `gen-pr` generates description (Summary + Issues Fixed / Solutions), push + create PR | publisher + gen-pr skill | `sonnet` | `high` | ✦ Diff analysis; executes `gh pr create` directly |
 | **5** Respond to Review | Per-comment judgment → reviewer cross-verification → publisher updates PR | responder → reviewer → publisher | `sonnet` / `opus` / `sonnet` | `high` / `xhigh` / `high` | ❌ No delegation |
-| **6** Cleanup Worktree | Sync docs back → commit → remove worktree (**branches are always preserved**) | gen-sync-docs-by-branchs → gen-commit → worktree-close-cleanup | — | — | ❌ Run in main session |
+| **6** Cleanup Worktree | Sync docs back → commit → remove worktree (**branches are always preserved**; `/retro` recommended at conclusion) | gen-sync-docs-by-branchs → gen-commit → worktree-close-cleanup | — | — | ❌ Run in main session |
 
 ### Per-task Tiering in STAGE 2
 

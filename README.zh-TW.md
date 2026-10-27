@@ -40,11 +40,11 @@ STAGE 0·grill 位於 `init` 之後、planner 派發之前，本身是對話往�
 | **0b** 實作計畫與初審 | 資料結構、檔案異動、任務拆分 → `docs/plans/`；`plan-verifier` 獨立 Opus 對抗初審（READY/REVISE 二值契約） | planner + plan-verifier | `opus` | `xhigh` | ❌ 不委派 |
 | **1** Issue + Worktree | Issue body 五區段 zh-tw；依 `gen-dev-worktree` 規則建 worktree + branch | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`、`git worktree add` |
 | **2** 實作 | ≥2 獨立任務且寫入路徑不重疊 → 並行；否則序列 | implementer | `sonnet` | `max` | ✦ 代碼 + 測試 + commit |
-| **2** 驗收 | 兩階段：spec compliance → code quality | verifier | `opus` | `xhigh` | ❌ 親自驗收 |
+| **2** 驗收 | 兩階段：spec compliance → code quality（階層式契約：PASS / FAIL: CODE / FAIL: INFRA） | verifier | `opus` | `xhigh` | ❌ 親自驗收 |
 | **3** 審查 | 根因判斷，不讓產出代碼的同源 model 自審 | reviewer | `opus` | `xhigh` | ❌ 不委派 |
 | **4** 發布 | `gen-pr` 產描述（Summary + 修正問題／方式），push + 建 PR | publisher + gen-pr skill | `sonnet` | `high` | ✦ Diff 分析；`gh pr create` 自己執行 |
 | **5** 回覆 Review | 逐條意見判斷 → reviewer 交叉驗證 → publisher 更新 PR | responder → reviewer → publisher | `sonnet`／`opus`／`sonnet` | `high`／`xhigh`／`high` | ❌ 不委派 |
-| **6** 清理 Worktree | 文件回寫 → commit → 移除 worktree（**branch 一律保留**） | gen-sync-docs-by-branchs → gen-commit → worktree-close-cleanup | — | — | ❌ 主對話執行 |
+| **6** 清理 Worktree | 文件回寫 → commit → 移除 worktree（**branch 一律保留**，結尾建議 `/retro`） | gen-sync-docs-by-branchs → gen-commit → worktree-close-cleanup | — | — | ❌ 主對話執行 |
 
 ### STAGE 2 的逐任務分級
 
@@ -90,7 +90,7 @@ implementer 不對所有任務用同一 model，讀完計畫後逐任務判定�
 
 ```
 skills/gen-dev-workflow/     主體：SKILL.md + 8 份 references + wf-state.sh
-skills/（其餘 15 個）         配套：gen-pr / gen-commit / gen-gh-issue /
+skills/（其餘 22 個）         配套：gen-pr / gen-commit / gen-gh-issue /
                              gen-dev-worktree / worktree-close-cleanup 等
 agents/                      8 個角色：planner / implementer / verifier /
                              reviewer / publisher / brancher / responder /
@@ -111,7 +111,9 @@ docs/diagrams/               編排流程互動圖（.workflow.json 原始規格
 
 | 層 | 對象 | 自動化 |
 |:--|:--|:--|
-| 1 | `wf-state.sh` 狀態機不變式（棘輪、非法轉移、pause_level、批次游標） | ✅ 35 項斷言 |
+| 1 | `wf-state.sh` 狀態機不變式（棘輪、非法轉移、pause_level、批次游標、promote 推進、total_tasks 閘門） | ✅ 42 項斷言 |
+| 2 | hook 純函式（白名單、路徑判定、diff 計算） | ✅ |
+| 3 | retro 技能規範檢驗 | ✅ 5 項斷言 |
 | 2 | hook 純函式（白名單、路徑判定、diff 計算） | ✅ |
 | 3 | 端到端接線（skill 載入、agent 派發、hook 攔截） | ❌ 手動，見 `examples/sandbox/README.md` |
 
