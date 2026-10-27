@@ -42,9 +42,10 @@ description: |
     ┌─────────────────────────────────────────────────┐
     │  STAGE 0·grill：需求盤問（planner 之前的必經步驟）│
     │  → 呼叫 gen-grill skill                          │
-    │  → 五項判準（問題定義/觸發場景/成功標準/範圍邊界 │
-    │    /既有覆蓋實查）齊備 → 放行                     │
-    │  → 任一項缺 → 針對該項提問（一次一個）後重判      │
+    │  → 以五項（問題定義/觸發場景/成功標準/範圍邊界 │
+    │    /既有覆蓋實查）為根展開決策樹                  │
+    │  → 逐輪問完 frontier（每題附推薦答案），事實自查  │
+    │  → frontier 清空 + 使用者確認理解一致 → 放行      │
     │  → 短路（已有文件背書/已 triage issue/機械性改動  │
     │    /quick 模式）→ 跳過 Q1–Q4，但 Q5 一律要跑      │
     │  → 產出結構化 brief，交給 planner                 │
@@ -108,8 +109,8 @@ description: |
     │       • 否則 → 🔴 序列逐任務                      │
     │  → 逐任務選 model：機械性→快/便宜｜整合→標準     │
     │     ｜設計判斷/跨層→最強                         │
-    │  → 委派實作任務，verifier 兩階段驗收          │
-    │     （spec compliance → code quality，          │
+    │  → 委派實作任務，verifier 兩階段階層式驗收     │
+    │     （首行 PASS / FAIL: CODE / FAIL: INFRA；  │
     │      見 references/delegation-and-parallel.md） │
     │  🪶 Ponytail：派發模板必附〈規則塊〉，驗收把  │
     │     計畫外抽象/依賴/防禦分支當品質不佳退回    │
@@ -182,6 +183,7 @@ description: |
     → 呼叫 worktree-close-cleanup skill 移除 STAGE 1 建立的 worktree
     → 僅移除 worktree 本身，**對應 branch 一律保留、不刪除**
     → 🔴 環境清理：透過 Bash 與 `jq` 將 `.claude/settings.local.json` 中的 `"alwaysThinkingEnabled": true` 移除，避免殘留。
+    → 💡 【環境回顧建議】清理完成後，若本次開發過程有遇到摩擦、多次測試失敗或審查退回，建議輸入 `/retro` 進行環境回顧，將機械性問題轉化為自動化檢查。
 ```
 
 ---
@@ -194,7 +196,7 @@ description: |
 
 ## 暫停點規則
 
-> **STAGE 0·grill 不是暫停點。** 盤問本身就是對話往返，不需要 `stage-done` 棘輪，
+> **STAGE 0·grill 不是暫停點。** 盤問本身就是對話往返（結束時的理解確認亦同），不需要 `stage-done` 棘輪，
 > 也不改變下表的 7 個暫停點。它發生在 `wf-state.sh init` 之後、planner 派發之前，
 > 狀態機完全無感（轉移表維持 `0a→0b→1→2→3→4`）。
 
