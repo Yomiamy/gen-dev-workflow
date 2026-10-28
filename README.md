@@ -27,8 +27,8 @@ Upon installation, hooks are automatically mounted via `hooks/hooks.json`—manu
 
 ## Orchestration Workflow
 
-📊 **[Interactive Workflow Diagram](docs/diagrams/2026-09-22-gen-dev-workflow-architecture.html)** (Open in browser; includes model, effort, delegation badges, three guided view perspectives, search, and export)
-📐 **[Orchestration Diagram](docs/diagrams/2026-09-21-gen-dev-workflow-orchestration.html)** — the two PreToolUse hook guards and both delegation layers
+📊 **[Interactive Workflow Diagram](docs/diagrams/2026-10-28-gen-dev-workflow-architecture.html)** (Open in browser; includes model, effort, delegation badges, three guided view perspectives, search, and export)
+📐 **[Orchestration Diagram](docs/diagrams/2026-10-28-gen-dev-workflow-orchestration.html)** — the two PreToolUse hook guards and both delegation layers
 
 Seven stages with ⏸ denoting pause points (`strict` mode pauses at all gates by default). STAGE 0a→4 constitutes the primary pipeline; STAGE 5 and 6 are standalone entry points triggered manually.
 STAGE 0·grill sits after `init` and before the planner dispatch. It is a conversational exchange rather than a pause point, so the state machine's transition table stays `0a→0b→1→2→3→4`.

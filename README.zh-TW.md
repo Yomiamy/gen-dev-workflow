@@ -27,8 +27,8 @@
 
 ## 編排流程
 
-📊 **[互動式流程圖](docs/diagrams/2026-09-22-gen-dev-workflow-architecture.html)**（在瀏覽器開啟，含 model／effort／委派標註、三組引導視圖、搜尋與匯出）
-📐 **[編排架構圖](docs/diagrams/2026-09-21-gen-dev-workflow-orchestration.html)** —— 兩道 PreToolUse hook 守衛與雙層委派結構
+📊 **[互動式流程圖](docs/diagrams/2026-10-28-gen-dev-workflow-architecture.html)**（在瀏覽器開啟，含 model／effort／委派標註、三組引導視圖、搜尋與匯出）
+📐 **[編排架構圖](docs/diagrams/2026-10-28-gen-dev-workflow-orchestration.html)** —— 兩道 PreToolUse hook 守衛與雙層委派結構
 
 七個 stage，⏸ 是暫停點（`strict` 預設全停）。STAGE 0a→4 是主線，5／6 是獨立入口，由你手動觸發。
 STAGE 0·grill 位於 `init` 之後、planner 派發之前，本身是對話往返、不是暫停點，狀態機轉移表維持 `0a→0b→1→2→3→4`。
