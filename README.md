@@ -35,12 +35,12 @@ STAGE 0·grill sits after `init` and before the planner dispatch. It is a conver
 
 | Stage | Tasks & Responsibilities | Agent / Skill | Model | Effort | Delegation |
 |:--|:--|:--|:--|:--|:--|
-| **0**·grill Requirement grilling | Gate on five criteria (problem definition / trigger scenario / success criteria / scope boundary / existing-coverage check); Q5 always runs even when short-circuited | gen-grill skill | `opus` | `xhigh` | ❌ no delegation |
+| **0**·grill Requirement grilling | Gate on five criteria (problem definition / trigger scenario / success criteria / scope boundary / existing-coverage check); Q5 always runs even when short-circuited | gen-grill skill (in-session) | main session (`opus`) | `xhigh` | ❌ No delegation |
 | **0a** Feature Spec | Dual parallel tracks: Project context gathering / Similar feature code investigation, synthesized into `docs/features/` | planner | `opus` | `xhigh` | ❌ No delegation |
 | **0b** Implementation Plan & Adversarial Review | Data structures, file changes, task breakdown → `docs/plans/`; `plan-verifier` independent Opus review (binary READY/REVISE contract) | planner + plan-verifier | `opus` | `xhigh` | ❌ No delegation |
 | **1** Issue + Worktree | Issue body with 5 standard sections (zh-tw); create worktree + branch following `gen-dev-worktree` rules | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`, `git worktree add` |
-| **2** Implementation | ≥2 independent tasks with non-overlapping write paths → parallel; otherwise sequential | implementer | `sonnet` | `max` | ✦ Code + Tests + Commits |
-| **2** Acceptance | Two phases: spec compliance → code quality (Hierarchical: PASS / FAIL: CODE / FAIL: INFRA) | verifier | `opus` | `xhigh` | ❌ In-session verification |
+| **2** Implementation | ≥2 independent tasks with non-overlapping write paths → parallel; otherwise sequential | implementer (microtasks handled in-place) | `sonnet` | `max` | ✦ Code + Tests + Commits |
+| **2** Acceptance | Two phases: spec compliance → code quality (Hierarchical: PASS / FAIL: CODE / FAIL: INFRA) | verifier (read-only; in-place for microtasks) | `opus` | `xhigh` | ❌ Independent verification |
 | **3** Review | Root cause analysis; never allow the authoring model to review its own code | reviewer | `opus` | `xhigh` | ❌ No delegation |
 | **4** Publish | `gen-pr` generates description (Summary + Issues Fixed / Solutions), push + create PR | publisher + gen-pr skill | `sonnet` | `high` | ✦ Diff analysis; executes `gh pr create` directly |
 | **5** Respond to Review | Per-comment judgment → reviewer cross-verification → publisher updates PR | responder → reviewer → publisher | `sonnet` / `opus` / `sonnet` | `high` / `xhigh` / `high` | ❌ No delegation |
@@ -48,10 +48,11 @@ STAGE 0·grill sits after `init` and before the planner dispatch. It is a conver
 
 ### Per-task Tiering in STAGE 2
 
-The implementer does not use the same model tier for all tasks; after reading the implementation plan, it determines delegation per task:
+The implementer does not use the same model tier for all tasks; after reading the implementation plan, it checks the Dispatch Brake threshold and determines delegation per task:
 
 | Complexity Signal | Delegation Tier | Example |
 |:--|:--|:--|
+| Single file ≤ 20 lines, no public API changes (microtask) | 🛑 In-place edit (Dispatch brake, subagent dispatch prohibited) | Modifying constants, fixing typos, single-line guard/assert, fixing docstrings |
 | Touches 1–2 files, fully specified, mechanical | Fast / low-cost tier (delegates to internal fast model) | Adding DTO fields, utility functions |
 | Touches multiple files, requires integration & coordination | Standard `sonnet` / `max` | Cross-service integration, modifying existing workflows |
 | Requires architectural design judgment or deep codebase understanding | Strongest reasoning `opus` / `xhigh` | Refactoring state machines, introducing cross-cutting layers |
@@ -64,7 +65,7 @@ Even if MCP delegation is available, the following must never be delegated:
 - STAGE 3 review reports (reviewer evaluates directly)
 - External modifying actions (`gh pr create` / `git push`)
 - Commit message generation
-- Small fixes under 50 lines in a single file
+- Microtasks hitting Dispatch Brake (single file ≤ 20 lines with no public API changes: modified in-place directly in main session)
 
 ### Two Distinct Feedback Loops
 
@@ -89,6 +90,7 @@ Detailed stage rules are located in `skills/gen-dev-workflow/references/`: `stat
 | Dependency | Requirement | Purpose |
 |:---|:---|:---|
 | `jq` | **Required** | Handles all JSON state read/write operations in `wf-state.sh` |
+| `python3` | **Required** | Used by `wf-guard-delegate-cwd.sh` hook guard for CWD boundary enforcement |
 | `gh` CLI | Required for STAGE 1 & 4 | Creates GitHub issues and pull requests |
 | `git` ≥ 2.5 | Required | Git worktree support |
 | `gemini-mcp-tool` | Optional | Used for agent delegation; falls back to main session if unavailable |
@@ -97,30 +99,31 @@ Detailed stage rules are located in `skills/gen-dev-workflow/references/`: `stat
 
 ```
 skills/gen-dev-workflow/     Core orchestrator: SKILL.md + 8 reference docs + wf-state.sh
-skills/ (remaining 15)       Supporting skills: gen-pr / gen-commit / gen-gh-issue /
+skills/ (remaining 22)       Supporting skills: gen-pr / gen-commit / gen-gh-issue /
                              gen-dev-worktree / worktree-close-cleanup, etc.
 agents/                      8 specialized roles: planner / implementer / verifier /
                              reviewer / publisher / brancher / responder /
                              plan-verifier
 hooks/                       stage-check (ratchet enforcement) + delegate-cwd (delegation boundary sandbox)
-tests/                       Tier 1 state machine + Tier 2 hook pure functions
-examples/sandbox/            Tier 3 mock project for end-to-end smoke testing
+tests/                       Tier 1 state machine + Tier 2 hook pure functions + Tier 3 skill spec
+examples/sandbox/            Manual mock project for end-to-end smoke testing
 docs/diagrams/               Interactive workflow diagrams (.workflow.json spec + .html)
 ```
 
 ## Testing
 
 ```bash
-./tests/run-all.sh          # Runs Tier 1 + Tier 2 tests (~2 seconds)
+./tests/run-all.sh          # Runs automated test suite (~2 seconds)
 ```
 
 Three-tier testing strategy:
 
 | Tier | Target | Automation |
 |:--|:--|:--|
-| 1 | `wf-state.sh` state machine invariants (ratchet, invalid transitions, `pause_level`, batch cursor) | ✅ 35 assertions |
+| 1 | `wf-state.sh` state machine invariants (ratchet, invalid transitions, `pause_level`, batch cursor, promote advancement, total_tasks gate) | ✅ 42 assertions |
 | 2 | Hook pure functions (allowlist, path checking, diff computation) | ✅ |
-| 3 | End-to-end wiring (skill loading, agent dispatch, hook interception) | ❌ Manual, see `examples/sandbox/README.md` |
+| 3 | Retro skill specification verification | ✅ 5 assertions |
+| Manual | End-to-end wiring smoke test (skill loading, agent dispatch, hook interception) | ❌ Manual, see `examples/sandbox/README.md` |
 
 Tier 3 is intentionally not automated: the subject under test is Claude's behavior after reading `SKILL.md`. The cost of mocking the entire execution environment far exceeds the validation value. Running quick mode manually once after modifying workflows is sufficient.
 

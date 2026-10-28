@@ -35,12 +35,12 @@ STAGE 0·grill 位於 `init` 之後、planner 派發之前，本身是對話往�
 
 | Stage | 任務內容 | Agent／Skill | Model | Effort | 委派 |
 |:--|:--|:--|:--|:--|:--|
-| **0**·grill 需求盤問 | 五項判準（問題定義／觸發場景／成功標準／範圍邊界／既有覆蓋實查）齊備才放行；短路時 Q5 仍必跑 | gen-grill skill | `opus` | `xhigh` | ❌ 不委派 |
+| **0**·grill 需求盤問 | 五項判準（問題定義／觸發場景／成功標準／範圍邊界／既有覆蓋實查）齊備才放行；短路時 Q5 仍必跑 | gen-grill skill（主對話執行） | 主對話 (`opus`) | `xhigh` | ❌ 不委派 |
 | **0a** 功能規格 | 並行雙線：專案 context 收集 ／ 相似功能代碼調查，收斂後寫 `docs/features/` | planner | `opus` | `xhigh` | ❌ 不委派 |
 | **0b** 實作計畫與初審 | 資料結構、檔案異動、任務拆分 → `docs/plans/`；`plan-verifier` 獨立 Opus 對抗初審（READY/REVISE 二值契約） | planner + plan-verifier | `opus` | `xhigh` | ❌ 不委派 |
 | **1** Issue + Worktree | Issue body 五區段 zh-tw；依 `gen-dev-worktree` 規則建 worktree + branch | gen-gh-issue skill + brancher | `sonnet` | `high` | ✦ `gh issue create`、`git worktree add` |
-| **2** 實作 | ≥2 獨立任務且寫入路徑不重疊 → 並行；否則序列 | implementer | `sonnet` | `max` | ✦ 代碼 + 測試 + commit |
-| **2** 驗收 | 兩階段：spec compliance → code quality（階層式契約：PASS / FAIL: CODE / FAIL: INFRA） | verifier | `opus` | `xhigh` | ❌ 親自驗收 |
+| **2** 實作 | ≥2 獨立任務且寫入路徑不重疊 → 並行；否則序列 | implementer（微任務由主進程原地處理） | `sonnet` | `max` | ✦ 代碼 + 測試 + commit |
+| **2** 驗收 | 兩階段：spec compliance → code quality（階層式契約：PASS / FAIL: CODE / FAIL: INFRA） | verifier（唯讀不改碼；微任務原地驗收） | `opus` | `xhigh` | ❌ 獨立驗收 |
 | **3** 審查 | 根因判斷，不讓產出代碼的同源 model 自審 | reviewer | `opus` | `xhigh` | ❌ 不委派 |
 | **4** 發布 | `gen-pr` 產描述（Summary + 修正問題／方式），push + 建 PR | publisher + gen-pr skill | `sonnet` | `high` | ✦ Diff 分析；`gh pr create` 自己執行 |
 | **5** 回覆 Review | 逐條意見判斷 → reviewer 交叉驗證 → publisher 更新 PR | responder → reviewer → publisher | `sonnet`／`opus`／`sonnet` | `high`／`xhigh`／`high` | ❌ 不委派 |
@@ -48,10 +48,11 @@ STAGE 0·grill 位於 `init` 之後、planner 派發之前，本身是對話往�
 
 ### STAGE 2 的逐任務分級
 
-implementer 不對所有任務用同一 model，讀完計畫後逐任務判定：
+implementer 不對所有任務用同一 model，讀完計畫後先過派發煞車門檻，其餘逐任務判定：
 
 | 任務複雜度信號 | 委派等級 | 範例 |
 |:--|:--|:--|
+| 單檔 ≤ 20 行且無公共 API 變更（微任務） | 🛑 原地修改（派發煞車，禁止派發 subagent） | 改常數、修 typo、補單行防禦/assert、修文件註解 |
 | 觸及 1–2 檔、規格完整、機械性 | 快／便宜（委派後端內部 fast model） | 新增 DTO 欄位、補 util function |
 | 觸及多檔、需整合協調 | 標準 `sonnet`／`max` | 跨 service 串接、改既有流程 |
 | 需設計判斷或廣泛 codebase 理解 | 最強推論 `opus`／`xhigh` | 重構狀態機、新增跨層架構 |
@@ -60,7 +61,7 @@ implementer 不對所有任務用同一 model，讀完計畫後逐任務判定�
 
 ### 不委派的硬規則
 
-即使 MCP 委派可用也不委派：STAGE 3 審查報告（reviewer 親自判斷）、對外動作（`gh pr create`／`git push`）、commit message 生成、單一檔案 < 50 行的小修正。
+即使 MCP 委派可用也不委派：STAGE 3 審查報告（reviewer 親自判斷）、對外動作（`gh pr create`／`git push`）、commit message 生成、微任務命中派發煞車（單檔 ≤ 20 行且無公共 API 變更，主進程原地修改）。
 
 ### 兩個不同層級的迴圈
 
@@ -82,6 +83,7 @@ implementer 不對所有任務用同一 model，讀完計畫後逐任務判定�
 | 相依 | 必要性 | 說明 |
 |:---|:---|:---|
 | `jq` | **必要** | `wf-state.sh` 的 JSON 讀寫全靠它 |
+| `python3` | **必要** | `wf-guard-delegate-cwd.sh` 守衛腳本執行邊界判定需要 |
 | `gh` CLI | STAGE 1／4 必要 | 建 issue 與 PR |
 | `git` ≥ 2.5 | 必要 | worktree 支援 |
 | `gemini-mcp-tool` | 選用 | 委派用；未裝時退回主對話自行執行 |
@@ -96,7 +98,7 @@ agents/                      8 個角色：planner / implementer / verifier /
                              reviewer / publisher / brancher / responder /
                              plan-verifier
 hooks/                       stage-check（棘輪強制）＋ delegate-cwd（委派越界防護）
-tests/                       層 1 狀態機 + 層 2 hook 純函式
+tests/                       層 1 狀態機 + 層 2 hook 純函式 + 層 3 技能規範
 examples/sandbox/            層 3 端到端冒煙測試用的假專案
 docs/diagrams/               編排流程互動圖（.workflow.json 原始規格 + .html）
 ```
@@ -104,7 +106,7 @@ docs/diagrams/               編排流程互動圖（.workflow.json 原始規格
 ## 測試
 
 ```bash
-./tests/run-all.sh          # 層 1 + 層 2，約 2 秒
+./tests/run-all.sh          # 自動化測試套件，約 2 秒
 ```
 
 三層策略：
@@ -114,8 +116,7 @@ docs/diagrams/               編排流程互動圖（.workflow.json 原始規格
 | 1 | `wf-state.sh` 狀態機不變式（棘輪、非法轉移、pause_level、批次游標、promote 推進、total_tasks 閘門） | ✅ 42 項斷言 |
 | 2 | hook 純函式（白名單、路徑判定、diff 計算） | ✅ |
 | 3 | retro 技能規範檢驗 | ✅ 5 項斷言 |
-| 2 | hook 純函式（白名單、路徑判定、diff 計算） | ✅ |
-| 3 | 端到端接線（skill 載入、agent 派發、hook 攔截） | ❌ 手動，見 `examples/sandbox/README.md` |
+| 手動 | 端到端冒煙測試（skill 載入、agent 派發、hook 攔截） | ❌ 手動，見 `examples/sandbox/README.md` |
 
 層 3 不自動化是刻意的：被測對象是 Claude 讀完 SKILL.md 後的行為，
 偽造整套環境的成本遠超被測價值。改完流程手動跑一次 quick 模式即可。
