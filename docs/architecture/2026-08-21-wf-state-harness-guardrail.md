@@ -1,10 +1,18 @@
 # wf-state.sh: Execution Harness 與 Guardrail 機制解析
 
 > **📝 更新紀錄 (Changelog)**：
+> * **2026-10-28**：全面對齊 Codebase 最新實作與測試套件（431 行，基準測試 42 項全數通過）。
+>   1. 修正 §2.3 轉移表：補齊 STAGE 5 PR Review 與 STAGE 6 Retro 獨立入口轉移（`4->5`、`5->4`、`5->5`、`4->6`、`5->6`、`6->done`），總合法轉移數由 10 條修正為完整 **16 條**。
+>   2. 更新 §2.5 任務完整性驗證：加入已完成數超出總數（`>`）之雙向防呆校驗。
+>   3. 新增 §2.6 `promote` 狀態機規格：詳解 sequence 模式與 0a/0b/1 來源階段校驗、自動推進 `.stage = "1"` 與 branch 綁定（終結 Bug 1.6 / PR #177），以及佔位檔 trap 安全回收機制；原 §2.6 順延為 §2.7 `upgrade`。
+>   4. 更新 §4 指令全表：對齊 `promote` 與 `advance` 的完整 Guardrail 實作。
+>   5. 結案文末 §「這套防線的結構性邊界」之 Gap 2.6：PreToolUse hook `wf-guard-stage-check.sh` 落地，阻斷未推進至 STAGE 5 即派發 `responder` 之違規行為；Plugin 化架構 `hooks/hooks.json` 自動掛載並配置 `"onFailure": "block"` 達成 Fail-Closed 防禦。
 > * **2026-08-21**：§「同構的第二個弱點：委派的工作目錄約束」結案（issue #134 / PR #135 已合併）。該節指出的 hook 層對策已落地為 `.claude/hooks/wf-guard-delegate-cwd.sh`（`pre` 阻擋派發者失誤、`post` 偵測子進程失誤，只告警不阻斷）。`wf-state.sh` 本身未修改——檔案位置本就不在其管轄範圍，這正是該節的原始結論。檔名日期前綴由 `2026-08-08` 更新至 `2026-08-21`。
 > * **2026-08-10**：委派傳輸層由 `agy -p` headless 改為 `gemini-mcp-tool`（MCP）。**本文件描述的 `wf-state.sh` 機制完全未受影響**（狀態機與委派後端正交），僅在文末「結構性邊界」節補上新的同類弱點：MCP 無法指定 cwd，工作目錄約束只能寫在 prompt 裡——與 Gap 2.6 同構的「約束不在強制層」問題。
 > * **2026-08-08**：依 `wf-state.sh` 原始碼逐行重新核對（基準 commit `daadf03`）。新增 §1.4 暫停粒度、§1.5 佔位檔回收、§2.6 quick 升級單向閘、§3 批次佇列子系統、§4 指令全表；修正 §2.3 轉移表（原漏 `3→2` 退回與 3 條 STAGE 5 轉移）、§2.4 白名單（原漏 `pause_level`）、§2.5 任務完整性驗證的實際觸發條件（僅 `next=3`）。檔名日期前綴由 `2026-07-21` 更新至 `2026-08-08`。
 > * **2026-07-21**：建立初版。
+
+> 📊 **視覺化總覽**：[`docs/diagrams/2026-10-28-gen-dev-workflow-orchestration.html`](../diagrams/2026-10-28-gen-dev-workflow-orchestration.html) 與 [`docs/diagrams/2026-10-28-gen-dev-workflow-architecture.html`](../diagrams/2026-10-28-gen-dev-workflow-architecture.html)——直觀展示狀態機 16 條合法轉移路徑、人機暫停點（7 個 Gate）與兩道 PreToolUse Hook（`wf-guard-stage-check` 與 `wf-guard-delegate-cwd`）攔截層。本文件是狀態機與執行防線深度解析，圖表為視覺化指引，兩者互補。
 
 > **核心信條**：把 LLM 當成一台不受控、隨時可能暴衝的引擎。單靠 Markdown 提示詞去約束 LLM 就像用「道德勸說」在管教程式碼；我們必須在底層實作「硬體級別的防呆機制」。
 
@@ -12,7 +20,7 @@
 
 在這支腳本裡，**Harness（基礎執行設施）** 與 **Guardrail（邊界防護）** 有著明確的職責劃分：Harness 負責提供標準化的掛載點讓 LLM 驅動流程；而 Guardrail 負責擋下所有愚蠢、出格或破壞性的行為。
 
-> **本文件的核對基準**：`.claude/skills/gen-dev-workflow/scripts/wf-state.sh`（439 行，commit `daadf03`）。所有機制描述均以腳本原始碼為準，非以 SKILL.md 的敘述為準——當兩者衝突時，**程式碼是唯一權威**。
+> **本文件的核對基準**：`skills/gen-dev-workflow/scripts/wf-state.sh`（431 行，基準測試 42 項全數通過）。所有機制描述均以腳本原始碼為準，非以 SKILL.md 的敘述為準——當兩者衝突時，**程式碼是唯一權威**。
 
 ---
 
@@ -88,17 +96,20 @@ Guardrail 的設計哲學充滿了對 LLM 的「極度不信任」。它的任�
 ⚠️ **棘輪與 `pause_level` 的職責分離**：`pause_level` 只決定「要不要設 `awaiting_confirmation`」，一旦設了，棘輪的強制力完全不變。`autonomous` 關掉的是「等使用者點頭」，不是關掉任何一道校驗（見 §2.3–2.5，全部照常生效）。
 
 ### 2.3 寫死狀態機轉移表 (`legal_transition`)
-不容許 LLM 憑感覺跳關。在 `sequence` 模式下，腳本直接查表匹配合法路徑，共 **10 條**：
+不容許 LLM 憑感覺跳關。在 `sequence` 模式下，腳本直接查表匹配合法路徑，共 **16 條**：
 
-| 分類 | 合法轉移 |
-|:---|:---|
-| 主鏈 | `0a→0b`、`0b→1`、`1→2`、`2→3`、`3→4`、`4→done` |
-| 審查退回 | `3→2` |
-| STAGE 5 循環 | `reviewer→responder`、`responder→reviewer`、`reviewer→publisher` |
+| 分類 | 合法轉移 | 說明 |
+|:---|:---|:---|
+| 主鏈推進 | `0a→0b`、`0b→1`、`1→2`、`2→3`、`3→4`、`4→done` | 依序經過探索、計畫、Worktree/分支、實作、審查、發布完成 |
+| 審查退回 | `3→2` | STAGE 3 審查不通過退回 STAGE 2 修正 |
+| 獨立入口與迭代 | `4→5`、`5→4`、`5→5`、`4→6`、`5→6`、`6→done` | 串接 STAGE 5 (PR Review 處理) 與 STAGE 6 (Retro 回顧)，支援多輪迭代或回顧後結案 |
+| STAGE 5 具名循環 | `reviewer→responder`、`responder→reviewer`、`reviewer→publisher` | PR Review 專用具名階段狀態循環 |
 
 若試圖從 `0a` 直接跳到 `2`，腳本會判定為非法轉移並直接 `exit 1`。
 
-> **`3→2` 不是漏洞而是設計**：審查不通過必須能退回實作，否則流程遇到問題就是死路。STAGE 5 的三條轉移則讓「回覆 PR review」的 responder ⇄ reviewer 循環有合法路徑可走。
+> **`3→2` 不是漏洞而是設計**：審查不通過必須能退回實作，否則流程遇到問題就是死路。
+>
+> **STAGE 5 與 STAGE 6 獨立入口的合法性**：PR 發布（STAGE 4）後若收到 Review 反饋可推進至 `4→5`，修正驗證完成可回跳 `5→4` 重新驗收，多輪反饋可原階段自旋 `5→5`；PR 合併後可由 `4→6` 或 `5→6` 進入 STAGE 6 執行 `/retro`，最後以 `6→done` 結案。
 >
 > **quick / jump 模式不套用轉移表**——quick 的階段本來就非正式、jump 是使用者明示跳段。但 §2.1 的 schema 校驗與 §2.2 的棘輪對三種 mode 一視同仁。
 
@@ -118,16 +129,27 @@ Guardrail 的設計哲學充滿了對 LLM 的「極度不信任」。它的任�
 攔截 LLM 在實作未完成時強行推進流程。**觸發條件精確**：僅在 `mode=sequence` 且 `next=3`（即 STAGE 2 → STAGE 3）時檢查：
 
 ```
-completed_tasks 的長度 < total_tasks  →  拒絕推進
+completed_tasks 的長度 < total_tasks  →  拒絕推進（實作未完成）
+completed_tasks 的長度 > total_tasks  →  拒絕推進（狀態異常：完成數超出宣告總數）
 ```
 
-錯誤訊息會回報實際進度：`實作尚未全部完成（已完成 N / 共 M 任務），拒絕推進至 STAGE 3`。
+雙向校驗機制：
+*   **未完成攔截**：若 `completed_count < total`，報錯 `實作尚未全部完成（已完成 N / 共 M 任務），拒絕推進至 STAGE 3`。
+*   **超出總數防呆**：若 `completed_count > total`，報錯 `任務狀態異常：已完成數 (N) 超出宣告總數 (M)。若實作中追加了任務，請先更新計畫並執行 wf-state.sh set <檔> total_tasks=<N>`。這消滅了「實作中臨時追加任務卻未同步計畫與宣告總數」的隱蔽失誤。
 
 `total_tasks` 為 `null` 時跳過此檢查——沒宣告總數就無從比對，這是刻意的寬容（並非所有流程都會事先拆好任務數）。
 
 > `task-done` 另有配套限制：`sequence` 模式下僅能在 `stage=2` 執行，避免任務計數在錯誤的階段被污染。而 `completed_tasks` 的寫入經過 `unique`，重複標記同一任務不會灌水通過此校驗。
 
-### 2.6 quick 升級的單向閘 (`upgrade`)
+### 2.6 pending 狀態提升與自動推進 (`promote`)
+在 STAGE 0a/0b 階段，工作流尚未建立 Git 分支，狀態儲存於 `.pending-<wf-id>.json`。當 STAGE 1 建立好 Worktree 與 Branch 後，必須透過 `promote` 將其提升為正式狀態檔 `<branch-slug>.json`。
+
+`promote` 內建三道關鍵 Guardrail（PR #177 / 終結 Bug 1.6）：
+1.  **來源狀態合規性檢驗**：強制校驗 `$src_mode == "sequence"` 且 `$src_stage` 必須是 `0a`、`0b` 或 `1`。若試圖對 quick 模式或已推進至 STAGE 2 之後的狀態執行 promote，腳本立即報錯退出，防止狀態錯置。
+2.  **原子階段自動推進至 1**：過去 promote 僅搬移檔案，LLM 還需手動執行 `advance` 推進階段，經常遺忘而導致狀態機卡在 0b 脫節。現在 `promote` 於產生目標 JSON 時直接寫入 `.branch = $b | .stage = "1"`，以程式碼強制達成「建立 Branch 即代表進入 STAGE 1」。
+3.  **佔位排他與無殘留清理**：目標檔先經 `claim_new` 排他佔位並設置 `trap 'rm -f "$f"' EXIT`；寫入通過 schema 校驗並成功落盤後解除 trap，最後執行 `rm "$src"` 刪除舊 pending 檔，保證單一工作流只有一個活動狀態檔。
+
+### 2.7 quick 升級的單向閘 (`upgrade`)
 `upgrade` 將 quick 模式轉為完整流程（`mode→sequence`、`stage→2`），並強制**單向**：
 
 *   來源 mode 必須是 `quick`，其他一律 `die`——不存在 sequence 降級回 quick 的路徑，避免用降級來繞過轉移表。
@@ -172,13 +194,13 @@ completed_tasks 的長度 < total_tasks  →  拒絕推進
 | 指令 | 用途 | 主要 Guardrail |
 |:---|:---|:---|
 | `init` | 建新 state（無 `--branch` → pending 檔） | sequence 只能從 `0a` 起始；`pause_level` 值域校驗；佔位檔 trap |
-| `promote` | pending → `<branch-slug>.json` | 需 `--branch`；來源先校驗；佔位檔 trap |
+| `promote` | pending → `<branch-slug>.json` | 需 `--branch`；校驗 sequence 模式與 0a/0b/1 來源階段；自動推進 stage 至 1；佔位檔 trap；原子寫入成功後刪除舊 pending 檔 |
 | `get` | 校驗後輸出 JSON | 讀取即校驗，腐壞檔立即失敗 |
 | `set` | 更新欄位 | 白名單 + `k=v` 格式檢查 + 先算後寫 |
 | `stage-done` | 標記 stage 完成、進入暫停點 | sequence 下參數須等於目前 stage |
 | `task-done` | 任務完成（記入 `completed_tasks`） | sequence 下僅能在 STAGE 2；`unique` 去重 |
 | `confirm` | 清除等待旗標（stage 不變） | — |
-| `advance` | 推進 stage | 棘輪 + 轉移表 + 任務完整性（`next=3`） |
+| `advance` | 推進 stage | 棘輪 + 轉移表（16 條合法轉移）+ 任務完整性雙向檢查（`next=3` 時：`completed < total` 拒絕；`completed > total` 異常報錯） |
 | `upgrade` | quick → sequence（單向） | 來源須為 quick；棘輪 |
 | `prune` | 清理 7 天以上的孤兒 pending 檔 | 只刪 `.pending-*.json`，`-mtime +7` |
 | `batch-init` | 建批次佇列 | 至少一個項目；`pause_level` 值域；佔位檔 trap |
@@ -199,9 +221,30 @@ completed_tasks 的長度 < total_tasks  →  拒絕推進
 
 必須誠實標註：**上述所有 Guardrail 只在腳本被呼叫時才生效**。
 
-腳本擋得住「呼叫了 `advance` 但參數不合法」，擋不住「根本沒呼叫腳本就推進流程」。這正是 [`2026-09-13-workflow-brainstorm.md`](../brainstorm/2026-09-13-workflow-brainstorm.md) 記錄的 **Gap 2.6**——STAGE 5/6 這類獨立入口不在主鏈上，LLM 容易全程不碰 `wf-state.sh`，此時再多的內部校驗都無從觸發。
+腳本擋得住「呼叫了 `advance` 但參數不合法」，擋不住「根本沒呼叫腳本就推進流程」。這正是 [`2026-10-25-workflow-brainstorm.md`](../brainstorm/2026-10-25-workflow-brainstorm.md) 記錄的 **Gap 2.6**——STAGE 5/6 這類獨立入口不在主鏈上，LLM 容易全程不碰 `wf-state.sh`，此時再多的內部校驗都無從觸發。
 
 **對策必須落在入口攔截（hook 層），繼續往腳本內部堆校驗是無效的**。判讀本文件的防護強度時，請把「LLM 會記得呼叫腳本」視為尚未被程式碼保證的前提。
+
+> **📌 2026-10-28 結案（issue #133 / PR #177 / PR #220 等已落地）**：Gap 2.6（STAGE 5 獨立入口跳過狀態機）已由 Hook 層攔截徹底解決！
+>
+> 專案在 Plugin 配置 `hooks/hooks.json` 中配置了 PreToolUse hook：
+> ```json
+> {
+>   "matcher": "Agent",
+>   "hooks": [
+>     {
+>       "type": "command",
+>       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wf-guard-stage-check.sh",
+>       "onFailure": "block"
+>     }
+>   ]
+> }
+> ```
+>
+> *   **攔截機制**：當主進程呼叫 `Agent` 工具派發 `responder` 子進程時，`wf-guard-stage-check.sh` 被觸發。它會鎖定當前 branch 對應的狀態檔，若 stage 不為 `"5"` 或 `"responder"`，立即以 `exit 2` 阻斷派發，並在 stderr 輸出明確修復引導（提示先執行 `wf-state.sh advance <state> 5 --confirmed` 或 jump 模式初始化）。
+> *   **Fail-Closed 防禦**：顯式聲明 `"onFailure": "block"`，當 hook 指令發生非預期故障時預設阻斷工具呼叫，徹底封死「忘記呼叫狀態機即偷跑進入 PR Review 處理」的漏洞。
+> *   **否決改掛 SubagentStart（實證查證）**：先前曾有提案考慮改掛至 `SubagentStart` 依 agent type 過濾攔截。經查證與實測證實，Claude Code runtime 將 `SubagentStart` 視為純觀察型（informational）事件，其 `exit 2` 退出碼或 JSON deny 決策會被 runtime 忽略，無法阻止 subagent 建立與執行。因此正式否決改掛 SubagentStart，堅守 `PreToolUse` 作為唯一阻斷點，並以 `"onFailure": "block"` 達成真正的 Fail-Closed（見 Issue #220）。
+> *   **Plugin 自動掛載**：隨著外掛架構推進，Hook 由 `hooks/hooks.json` 隨外掛啟用時自動載入，不再依賴個別工程師本機 `.claude/settings.local.json` 的手動配置，消滅了配置漂移。
 
 ### 🔴 同構的第二個弱點：委派的工作目錄約束（2026-08-10 新增）
 
@@ -220,11 +263,11 @@ completed_tasks 的長度 < total_tasks  →  拒絕推進
 |:---|:---|:---|
 | 失效模式 | 根本沒呼叫腳本 | 約束只寫在 prompt 裡 |
 | Guardrail 反應 | 無（未觸發） | 無（不在管轄範圍） |
-| 正確對策層級 | hook 攔截 | hook 攔截 / 委派後驗證 |
+| 正確對策層級 | hook 攔截（已落地） | hook 攔截 / 委派後驗證（已落地） |
 
-**目前的緩解措施是事後驗證而非事前阻擋**：委派紀律第 3 條要求主對話親自跑 `git status` / `git log` 確認實際落地位置，屬**偵測**不屬**預防**。真正的解法同樣落在 hook 層——這再次印證本文件的核心結論：**約束若不在無法繞過的執行層，就只是願望清單。**
+**過去的緩解措施是事後驗證而非事前阻擋**：委派紀律要求主對話親自跑 `git status` / `git log` 確認實際落地位置，屬**偵測**不屬**預防**。真正的解法同樣落在 hook 層——這再次印證本文件的核心結論：**約束若不在無法繞過的執行層，就只是願望清單。**
 
-> **📌 2026-08-21 結案（issue #134 / PR #135 已合併）**：本節指出的 hook 層對策已落地為 `.claude/hooks/wf-guard-delegate-cwd.sh`，單一腳本兩個 mode 分別對應上表最後一列的兩種選項——**兩者併用而非擇一**，因為它們攔的是不同的失效原因：
+> **📌 2026-08-21 結案 / 2026-10-28 Plugin 化更新（issue #134 / PR #135 已合併）**：本節指出的 hook 層對策已落地為 `hooks/wf-guard-delegate-cwd.sh`，並透過 `hooks/hooks.json` 由 Plugin 系統自動掛載（PreToolUse 顯式配置 `"onFailure": "block"`）。單一腳本兩個 mode 分別對應上表最後一列的兩種選項——**兩者併用而非擇一**，因為它們攔的是不同的失效原因：
 >
 > | | `pre`（PreToolUse） | `post`（PostToolUse） |
 > |:---|:---|:---|
